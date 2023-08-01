@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emoji Browser</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            margin: 20px;
+            color: #333;
+        }
+        #categorySelect {
+            margin: 20px;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+        #emojis {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+       .emoji-card {
+            border: 1px solid #ddd;
+             margin: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            outline: 2px solid #08F7FE;
+            outline-offset: 2px;
+            width: 80%;
+        }
+        .emoji-card p {
+            margin: 0;
+        }
+        .pagination-button {
+            margin: 5px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: #ddd;
+            cursor: pointer;
+        }
+        .pagination-button:hover {
+            background-color: #ccc;
+        }
+        .pagination-button.current-page {
+            color: black;
+            background-color: #ccc;
+        }
+        #pagination {
+            display: flex;
+            justify-content: center;
+            padding: 10px;
+        }
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .emoji-card {
+                width: 45%;
+            }
+        }
+        @media (min-width: 1025px) {
+            .emoji-card {
+                width: 30%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Emoji Browser</h1>
+    <select id="categorySelect">
+        <option value="All">All</option>
+    </select>
+    <div id="emojis"></div>
+    <div id="pagination"></div>
+
+    <script>
+        const ITEMS_PER_PAGE = 10;
+        const MAX_VISIBLE_PAGES = 4;
+        let emojis = [];
+        let currentPage = 0;
+        let currentCategory = 'All';
+        let maxPageButton = MAX_VISIBLE_PAGES;
+        let minPageButton = 0;
+
+        function displayEmojis() {
+    const emojisDiv = document.getElementById('emojis');
+    emojisDiv.innerHTML = '';
+    const filteredEmojis = emojis
+        .filter(emoji => currentCategory === 'All' || emoji.category === currentCategory)
+        .slice(currentPage * ITEMS_PER_PAGE, (currentPage + 1) * ITEMS_PER_PAGE);
+
+    filteredEmojis.forEach(emoji => {
+        const div = document.createElement('div');
+        div.className = 'emoji-card';
+        div.innerHTML = `
+            <p>${emoji.htmlCode.join('')}</p>
+            <p>${emoji.name}</p>
+            <p>${emoji.category}</p>
+            <p>${emoji.group}</p>
+        `;
+        emojisDiv.appendChild(div);
+    });
+}
+        
+        function displayPagination() {
+            const paginationDiv = document.getElementById('pagination');
+            paginationDiv.innerHTML = '';
+            const numPages = Math.ceil(emojis.length / ITEMS_PER_PAGE);
+
+            const previousButton = document.createElement('button');
+            previousButton.className = 'pagination-button';
+            previousButton.innerText = 'Previous';
+            previousButton.addEventListener('click', () => {
+                if (currentPage > 0) {
+                    currentPage--;
+                    if (currentPage < minPageButton) {
+                        minPageButton = Math.max(minPageButton - 1, 0);
+                        maxPageButton = minPageButton + MAX_VISIBLE_PAGES;
+                    }
+                    displayEmojis();
+                    displayPagination();
+                }
+            });
+            paginationDiv.appendChild(previousButton);
+
+            for (let i = minPageButton; i < Math.min(numPages, maxPageButton); i++) {
+                const button = document.createElement('button');
+                button.className = 'pagination-button';
+                if (i === currentPage) {
+                    button.classList.add('current-page');
+                }
+                button.innerText = i + 1;
+                button.addEventListener('click', () => {
+                    currentPage = i;
+                    if (currentPage < minPageButton) {
+                        minPageButton = Math.max(currentPage, 0);
+                        maxPageButton = minPageButton + MAX_VISIBLE_PAGES;
+                    } else if (currentPage >= maxPageButton) {
+                        maxPageButton = Math.min(currentPage + 1, numPages);
+                        minPageButton = maxPageButton - MAX_VISIBLE_PAGES;
+                    }
+                    displayEmojis();
+                    displayPagination();
+                });
+                paginationDiv.appendChild(button);
+            }
+
+            const nextButton = document.createElement('button');
+            nextButton.className = 'pagination-button';
+            nextButton.innerText = 'Next';
+            nextButton.addEventListener('click', () => {
+                if (currentPage < numPages - 1) {
+                    currentPage++;
+                    if (currentPage >= maxPageButton) {
+                        maxPageButton = Math.min(maxPageButton + 1, numPages);
+                        minPageButton = maxPageButton - MAX_VISIBLE_PAGES;
+                    }
+                    displayEmojis();
+                    displayPagination();
+                }
+            });
+            paginationDiv.appendChild(nextButton);
+        }
+
+        function displayCategories() {
+            const select = document.getElementById('categorySelect');
+            const categories = ['All', ...new Set(emojis.map(emoji => emoji.category))];
+            categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.innerText = category;
+                select.appendChild(option);
+            });
+        }
+
+        async function fetchEmojis() {
+            const response = await fetch('https://emojihub.yurace.pro/api/all');
+            emojis = await response.json();
+            displayEmojis();
+            displayPagination();
+            displayCategories();
+        }
+
+        document.getElementById('categorySelect').addEventListener('change', (e) => {
+            currentCategory = e.target.value;
+            displayEmojis();
+        });
+
+        fetchEmojis();
+    </script>
+</body>
+</html>
