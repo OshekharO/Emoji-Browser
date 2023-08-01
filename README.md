@@ -1,6 +1,5 @@
 # Emoji Browser
 
-## Description
 Emoji Browser is a web app that allows you to browse and explore various emojis conveniently.
 
 ## Installation
